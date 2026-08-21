@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nhật ký kỷ luật</title>
+<meta name="description" content="Theo dõi thói quen, ghi chú việc cần làm và nhắc nhở hằng ngày." />
+<meta name="theme-color" content="#1C1F1A" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kỷ luật" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" type="image/png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #1C1F1A;
+    --surface: #242821;
+    --surface2: #2E332A;
+    --text: #EDE8DD;
+    --text-dim: #A6A896;
+    --text-faint: #7A7D6E;
+    --accent: #C9A227;
+    --accent-dim: #4A4E3E;
+    --border: #3A3F33;
+    --border-soft: #2E332A;
+    --danger: #D98066;
+    --good: #B7C97A;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { padding: 32px 16px 60px; }
+  .page { max-width: 760px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+  }
+  .eyebrow { font-size: 11px; letter-spacing: 0.14em; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
+  h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: 0.01em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+  .week-badge { text-align: right; }
+  .week-badge-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; }
+  .week-badge-range { font-size: 15px; color: var(--accent); font-weight: 600; }
+
+  .add-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  input[type="text"] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  #syncForm input[type="text"], #syncForm input[type="password"] {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  #syncForm input:focus { outline: none; border-color: var(--accent); }
+  .add-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 0 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .add-btn:hover { background: var(--accent); color: var(--bg); }
+
+  .empty {
+    color: var(--text-dim);
+    font-size: 13px;
+    text-align: center;
+    padding: 40px 20px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 14px;
+    margin-bottom: 16px;
+  }
+
+  .grid-row {
+    display: grid;
+    grid-template-columns: minmax(100px, 1.5fr) repeat(7, 1fr) 0.9fr;
+    gap: 4px;
+    align-items: center;
+  }
+  .grid-head { margin-bottom: 10px; }
+  .grid-head > div { font-size: 10px; letter-spacing: 0.06em; color: var(--text-dim); text-align: center; }
+  .grid-head > div:first-child { text-align: left; }
+  .grid-head .today { color: var(--accent); }
+
+  .habit-row { padding: 6px 0; border-top: 1px solid var(--border-soft); }
+  .habit-name-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 4px;
+    overflow: hidden;
+  }
+  .habit-name {
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .del-btn {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    opacity: 0;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+  .habit-name-cell:hover .del-btn { opacity: 1; }
+
+  .cell {
+    aspect-ratio: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    min-height: 26px;
+    transition: border-color 0.15s;
+  }
+  .cell:hover:not(.disabled) { border-color: var(--accent); }
+  .cell.checked { background: var(--accent); border-color: var(--accent); }
+  .cell.disabled {
+    background: #191c16;
+    border-style: dashed;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .cell svg { width: 12px; height: 12px; transform: scale(0.4); opacity: 0; transition: transform 0.18s ease-out, opacity 0.18s ease-out; }
+  .cell.checked svg { transform: scale(1); opacity: 1; }
+
+  .streak-cell { display: flex; justify-content: center; }
+  .streak-stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    border: 1px solid #4A431F;
+    background: rgba(201,162,39,0.1);
+    border-radius: 3px;
+    padding: 2px 6px;
+  }
+  .streak-none { color: #4A4E42; font-size: 12px; }
+
+  .compare-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+  .stat-label { font-size: 10px; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 6px; }
+  .stat-value {
+    font-family: 'Oswald', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-sub { font-size: 10px; color: var(--text-faint); margin-top: 4px; }
+
+  .chart-title { font-size: 11px; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 12px; text-transform: uppercase; }
+  .chart-wrap { position: relative; width: 100%; }
+  .legend { display: flex; gap: 16px; margin-top: 8px; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .notes-card { margin-bottom: 20px; }
+  .notes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .notes-status { font-size: 10px; color: var(--good); letter-spacing: 0.04em; min-height: 12px; }
+  textarea#notesArea {
+    width: 100%;
+    min-height: 110px;
+    resize: vertical;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  textarea#notesArea:focus { outline: none; border-color: var(--accent); }
+  textarea#notesArea::placeholder { color: var(--text-faint); }
+
+  .footnote { font-size: 11px; color: var(--text-faint); text-align: center; line-height: 1.6; margin: 0; }
+  .warn-bar {
+    background: #3A2A22;
+    border: 1px solid #6B4230;
+    color: #E8AE8F;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+
+  .install-btn {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .cat-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 0 8px;
+  }
+  .cat-select:focus { outline: none; border-color: var(--accent); }
+
+  .filter-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .filter-tab {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .filter-tab .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .filter-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(201,162,39,0.08); }
+
+  .cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-right: 6px; }
+  .name-edit-input {
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 2px 4px;
+    width: 100%;
+  }
+  .icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    opacity: 0;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    transition: opacity 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .icon-btn.reminder-on { opacity: 1; color: var(--accent); }
+  .habit-name-cell:hover .icon-btn { opacity: 1; }
+
+  .reminder-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border-soft);
+  }
+  .reminder-row:first-child { border-top: none; }
+  .reminder-row .r-name { font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .reminder-row input[type="time"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 4px 6px;
+    color-scheme: dark;
+  }
+  .reminder-clear { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 2px; display: flex; }
+  .best-streak { font-size: 10px; color: var(--text-faint); margin-left: 4px; }
+
+  @media (max-width: 520px) {
+    .grid-row { grid-template-columns: minmax(70px, 1.3fr) repeat(7, 1fr) 0.8fr; gap: 3px; }
+    .habit-name { font-size: 11px; }
+    .compare-row { grid-template-columns: 1fr; }
+    .add-row { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div>
+        <div class="eyebrow">SỔ TAY KỶ LUẬT</div>
+        <h1>Nhật ký thói quen</h1>
+      </div>
+      <div class="week-badge">
+        <div class="week-badge-label">Tuần hiện tại</div>
+        <div class="week-badge-range" id="weekRange"></div>
+      </div>
+    </header>
+
+    <button class="install-btn" id="installBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+      Cài đặt app
+    </button>
+
+    <div class="card" id="syncCard">
+      <div class="notes-header">
+        <div class="chart-title" style="margin-bottom:0;">ĐỒNG BỘ NHIỀU THIẾT BỊ (QUA GITHUB)</div>
+        <button class="add-btn" id="syncToggleBtn" style="padding:0 10px; height:26px;">Cài đặt</button>
+      </div>
+      <div id="syncStatus" style="font-size:11px; color:var(--text-dim); margin-bottom:8px;"></div>
+      <div id="syncForm" style="display:none;">
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px;">
+          <input type="text" id="syncOwner" placeholder="Tên tài khoản GitHub (vd: LQL130)" />
+          <input type="text" id="syncRepo" placeholder="Tên repo (vd: C-n-)" />
+          <input type="password" id="syncToken" placeholder="Personal Access Token (github_pat_...)" />
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="add-btn" id="syncSaveBtn">Kết nối</button>
+          <button class="add-btn" id="syncClearBtn" style="border-color:var(--danger); color:var(--danger);">Ngắt kết nối</button>
+        </div>
+        <p class="footnote" style="margin-top:8px;">Token chỉ lưu trên trình duyệt này, dùng để đọc/ghi 1 file dữ liệu trong repo của bạn. Nhập cùng thông tin này ở mọi thiết bị muốn đồng bộ.</p>
+      </div>
+    </div>
+
+    <div id="warnBar" class="warn-bar" style="display:none;">Không thể lưu dữ liệu trên trình duyệt này.</div>
+
+    <div class="add-row">
+      <input type="text" id="newHabitInput" placeholder="Thêm thói quen hoặc công việc cần rèn luyện..." />
+      <select class="cat-select" id="newHabitCategory"></select>
+      <button class="add-btn" id="addBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Thêm
+      </button>
+    </div>
+
+    <div class="card notes-card">
+      <div class="notes-header">
+        <div class="chart-title" style="margin-bottom:0;">GHI CHÚ — VIỆC CẦN LÀM</div>
+        <div class="notes-status" id="notesStatus"></div>
+      </div>
+      <textarea id="notesArea" placeholder="Liệt kê việc cần làm hôm nay hoặc trong tuần này..."></textarea>
+    </div>
+
+    <div id="emptyState" class="empty" style="display:none;">
+      Chưa có thói quen nào. Thêm một mục ở trên để bắt đầu theo dõi kỷ luật của bạn.
+    </div>
+
+    <div id="mainContent" style="display:none;">
+      <div class="card">
+        <div class="filter-tabs" id="filterTabs"></div>
+        <div class="grid-row grid-head" id="gridHead"></div>
+        <div id="habitRows"></div>
+      </div>
+
+      <div class="card" id="remindersCard">
+        <div class="notes-header">
+          <div class="chart-title" style="margin-bottom:0;">NHẮC NHỞ HẰNG NGÀY</div>
+          <button class="add-btn" id="notifPermBtn" style="padding:0 10px; height:26px;">🔔 Bật thông báo</button>
+        </div>
+        <div id="reminderList"></div>
+      </div>
+
+      <div class="compare-row">
+        <div class="stat-card">
+          <div class="stat-label">Tuần này</div>
+          <div class="stat-value" id="thisWeekPct">0%</div>
+          <div class="stat-sub">tính đến hôm nay</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tuần trước</div>
+          <div class="stat-value" id="lastWeekPct">0%</div>
+          <div class="stat-sub" id="lastWeekRange"></div>
+        </div>
+        <div class="stat-card" id="deltaCard">
+          <div class="stat-label">Chênh lệch</div>
+          <div class="stat-value" id="deltaValue">0%</div>
+          <div class="stat-sub">so với tuần trước</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-title">Số ngày hoàn thành theo thói quen</div>
+        <div class="chart-wrap" id="chartWrap">
+          <canvas id="habitChart" role="img" aria-label="Biểu đồ cột so sánh số ngày hoàn thành mỗi thói quen giữa tuần này và tuần trước"></canvas>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-swatch" style="background:var(--accent)"></span>Tuần này</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:var(--accent-dim)"></span>Tuần trước</span>
+        </div>
+      </div>
+
+      <p class="footnote">Lưới điểm danh tự làm mới vào mỗi thứ Hai. Dữ liệu các tuần cũ vẫn được lưu lại để so sánh và theo dõi xu hướng.</p>
+    </div>
+  </div>
+
+<script>
+  const DAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+  const STORE_KEY = "discipline-log-v1";
+  const NOTES_KEY = "discipline-notes-v1";
+  const CATEGORIES = {
+    suckhoe:  { label: "Sức khỏe",  color: "#B7C97A" },
+    congviec: { label: "Công việc", color: "#C9A227" },
+    hoctap:   { label: "Học tập",   color: "#7FB3C9" },
+    taichinh: { label: "Tài chính", color: "#D9A366" },
+    khac:     { label: "Khác",      color: "#A6A896" }
+  };
+  let habits = [];
+  let entries = {};
+  let chart = null;
+  let activeFilter = "all";
+  let editingHabitId = null;
+  const notifiedToday = new Set();
+
+  // ---- Đồng bộ qua GitHub (dùng chính repo của bạn làm nơi lưu dữ liệu chung) ----
+  const GH_CONFIG_KEY = "gh-sync-config";
+  const ghShaCache = {};
+  function ghConfigGet() {
+    try {
+      const raw = localStorage.getItem(GH_CONFIG_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function ghConfigSet(cfg) {
+    try { localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(cfg)); } catch (e) {}
+  }
+  function ghConfigClear() {
+    try { localStorage.removeItem(GH_CONFIG_KEY); } catch (e) {}
+  }
+  function ghHeaders(cfg) {
+    return {
+      Authorization: `Bearer ${cfg.token}`,
+      Accept: "application/vnd.github+json"
+    };
+  }
+  async function ghGet(key) {
+    const cfg = ghConfigGet();
+    if (!cfg) return null;
+    const path = `sync-data/${key}.json`;
+    try {
+      const res = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`, { headers: ghHeaders(cfg) });
+      if (res.status === 404) { ghShaCache[key] = null; return null; }
+      if (!res.ok) return null;
+      const json = await res.json();
+      ghShaCache[key] = json.sha;
+      return decodeURIComponent(escape(atob(json.content.replace(/\n/g, ""))));
+    } catch (e) { return null; }
+  }
+  async function ghPut(key, value) {
+    const cfg = ghConfigGet();
+    if (!cfg) return false;
+    const path = `sync-data/${key}.json`;
+    const encoded = btoa(unescape(encodeURIComponent(value)));
+    const doPut = async (sha) => {
+      const body = { message: `cập nhật ${key}`, content: encoded, branch: cfg.branch || "main" };
+      if (sha) body.sha = sha;
+      return fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`, {
+        method: "PUT",
+        headers: { ...ghHeaders(cfg), "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+    };
+    try {
+      let res = await doPut(ghShaCache[key]);
+      if (res.status === 409 || res.status === 422) {
+        await ghGet(key);
+        res = await doPut(ghShaCache[key]);
+      }
+      if (!res.ok) return false;
+      const j = await res.json();
+      ghShaCache[key] = j.content.sha;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Lưu qua GitHub nếu đã kết nối > window.storage khi chạy trong Claude > localStorage khi chạy độc lập.
+  const hasCloudStorage = typeof window.storage !== "undefined";
+  async function storageGet(key) {
+    if (ghConfigGet()) return ghGet(key);
+    if (hasCloudStorage) {
+      try {
+        const r = await window.storage.get(key, false);
+        return r ? r.value : null;
+      } catch (e) { return null; }
+    }
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  async function storageSet(key, value) {
+    if (ghConfigGet()) return ghPut(key, value);
+    if (hasCloudStorage) {
+      try {
+        const r = await window.storage.set(key, value, false);
+        return !!r;
+      } catch (e) { return false; }
+    }
+    try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+  }
+
+  function toKey(d) {
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+  function getMonday(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    date.setDate(date.getDate() + diff);
+    date.setHours(0,0,0,0);
+    return date;
+  }
+  function addDays(d, n) {
+    const date = new Date(d);
+    date.setDate(date.getDate() + n);
+    return date;
+  }
+  function weekDates(monday) {
+    return Array.from({length:7}, (_,i) => addDays(monday, i));
+  }
+  function formatRange(monday) {
+    const sunday = addDays(monday, 6);
+    const fmt = (d) => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+    return `${fmt(monday)} — ${fmt(sunday)}`;
+  }
+  const uid = () => Math.random().toString(36).slice(2,10);
+
+  const today = new Date();
+  const todayKey = toKey(today);
+  const thisMonday = getMonday(today);
+  const lastMonday = addDays(thisMonday, -7);
+  const thisWeekDates = weekDates(thisMonday);
+  const lastWeekDates = weekDates(lastMonday);
+
+  async function load() {
+    const raw = await storageGet(STORE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        habits = parsed.habits || [];
+        entries = parsed.entries || {};
+      } catch (e) { /* dữ liệu lỗi, bắt đầu mới */ }
+    }
+    const notesRaw = await storageGet(NOTES_KEY);
+    if (notesRaw != null) {
+      document.getElementById("notesArea").value = notesRaw;
+    }
+    if (!hasCloudStorage && !ghConfigGet()) {
+      const warn = document.getElementById("warnBar");
+      warn.textContent = "Chưa kết nối đồng bộ: dữ liệu chỉ lưu trên máy này. Cài đặt đồng bộ qua GitHub ở khung phía trên để dùng chung nhiều thiết bị.";
+      warn.style.display = "block";
+    } else {
+      document.getElementById("warnBar").style.display = "none";
+    }
+  }
+  async function save() {
+    const ok = await storageSet(STORE_KEY, JSON.stringify({ habits, entries }));
+    if (hasCloudStorage || ghConfigGet()) {
+      const warn = document.getElementById("warnBar");
+      if (!ok) {
+        warn.textContent = "Lỗi khi lưu — kiểm tra lại kết nối mạng hoặc token GitHub.";
+        warn.style.display = "block";
+      } else {
+        warn.style.display = "none";
+      }
+    }
+  }
+
+  let notesSaveTimer = null;
+  function scheduleSaveNotes() {
+    const statusEl = document.getElementById("notesStatus");
+    statusEl.textContent = "Đang lưu...";
+    statusEl.style.color = "var(--text-faint)";
+    clearTimeout(notesSaveTimer);
+    notesSaveTimer = setTimeout(saveNotes, 500);
+  }
+  async function saveNotes() {
+    const statusEl = document.getElementById("notesStatus");
+    const val = document.getElementById("notesArea").value;
+    const ok = await storageSet(NOTES_KEY, val);
+    statusEl.textContent = ok ? "Đã lưu ✓" : "Lỗi khi lưu";
+    statusEl.style.color = ok ? "var(--good)" : "var(--danger)";
+    if (ok) setTimeout(() => { statusEl.textContent = ""; }, 1500);
+  }
+
+  function isChecked(habitId, dateKey) {
+    return !!(entries[dateKey] && entries[dateKey][habitId]);
+  }
+  function countInWeek(habitId, dates) {
+    return dates.reduce((acc,d) => acc + (isChecked(habitId, toKey(d)) ? 1 : 0), 0);
+  }
+  function streak(habitId) {
+    let count = 0;
+    let cursor = new Date(today);
+    while (true) {
+      const key = toKey(cursor);
+      if (isChecked(habitId, key)) {
+        count++;
+        cursor = addDays(cursor, -1);
+      } else {
+        if (toKey(cursor) === todayKey) {
+          cursor = addDays(cursor, -1);
+          continue;
+        }
+        break;
+      }
+    }
+    return count;
+  }
+
+  function bestStreakEver(habitId) {
+    const dates = Object.keys(entries)
+      .filter(k => entries[k] && entries[k][habitId])
+      .sort();
+    if (!dates.length) return 0;
+    let best = 1, cur = 1;
+    for (let i = 1; i < dates.length; i++) {
+      const diff = Math.round((new Date(dates[i]) - new Date(dates[i-1])) / 86400000);
+      cur = diff === 1 ? cur + 1 : 1;
+      if (cur > best) best = cur;
+    }
+    return best;
+  }
+
+  function addHabit() {
+    const input = document.getElementById("newHabitInput");
+    const catSelect = document.getElementById("newHabitCategory");
+    const name = input.value.trim();
+    if (!name) return;
+    habits.push({ id: uid(), name, createdAt: todayKey, category: catSelect.value, reminderTime: null });
+    input.value = "";
+    save();
+    render();
+  }
+  function removeHabit(id) {
+    habits = habits.filter(h => h.id !== id);
+    if (activeFilter !== "all" && !habits.some(h => h.category === activeFilter)) activeFilter = "all";
+    save();
+    render();
+  }
+  function renameHabit(id, newName) {
+    const h = habits.find(h => h.id === id);
+    if (h && newName.trim()) h.name = newName.trim();
+    editingHabitId = null;
+    save();
+    render();
+  }
+  function setReminder(id, time) {
+    const h = habits.find(h => h.id === id);
+    if (h) h.reminderTime = time || null;
+    save();
+    render();
+  }
+  function toggleEntry(habitId, dateKey) {
+    const dObj = new Date(dateKey);
+    if (dObj > today) return;
+    if (!entries[dateKey]) entries[dateKey] = {};
+    entries[dateKey][habitId] = !entries[dateKey][habitId];
+    save();
+    render();
+  }
+
+  const checkSvg = `<svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.2 12L13 4" stroke="#1C1F1A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  function render() {
+    document.getElementById("weekRange").textContent = formatRange(thisMonday);
+    document.getElementById("lastWeekRange").textContent = formatRange(lastMonday);
+
+    const hasHabits = habits.length > 0;
+    document.getElementById("emptyState").style.display = hasHabits ? "none" : "block";
+    document.getElementById("mainContent").style.display = hasHabits ? "block" : "none";
+    if (!hasHabits) return;
+
+    // filter tabs (chỉ hiện danh mục đang thực sự dùng)
+    const usedCats = [...new Set(habits.map(h => h.category).filter(c => CATEGORIES[c]))];
+    const filterTabs = document.getElementById("filterTabs");
+    if (usedCats.length > 1) {
+      filterTabs.style.display = "flex";
+      filterTabs.innerHTML = "";
+      const allTab = document.createElement("button");
+      allTab.className = "filter-tab" + (activeFilter === "all" ? " active" : "");
+      allTab.textContent = "Tất cả";
+      allTab.onclick = () => { activeFilter = "all"; render(); };
+      filterTabs.appendChild(allTab);
+      usedCats.forEach(c => {
+        const tab = document.createElement("button");
+        tab.className = "filter-tab" + (activeFilter === c ? " active" : "");
+        tab.innerHTML = `<span class="dot" style="background:${CATEGORIES[c].color}"></span>${CATEGORIES[c].label}`;
+        tab.onclick = () => { activeFilter = c; render(); };
+        filterTabs.appendChild(tab);
+      });
+    } else {
+      filterTabs.style.display = "none";
+      activeFilter = "all";
+    }
+    const viewHabits = activeFilter === "all" ? habits : habits.filter(h => h.category === activeFilter);
+
+    // grid head
+    const gridHead = document.getElementById("gridHead");
+    gridHead.innerHTML = "";
+    const nameHead = document.createElement("div");
+    nameHead.textContent = "THÓI QUEN";
+    gridHead.appendChild(nameHead);
+    thisWeekDates.forEach((d,i) => {
+      const el = document.createElement("div");
+      el.textContent = DAY_LABELS[i];
+      if (toKey(d) === todayKey) el.classList.add("today");
+      gridHead.appendChild(el);
+    });
+    const streakHead = document.createElement("div");
+    streakHead.textContent = "CHUỖI";
+    gridHead.appendChild(streakHead);
+
+    // rows
+    const rowsWrap = document.getElementById("habitRows");
+    rowsWrap.innerHTML = "";
+    viewHabits.forEach(h => {
+      const row = document.createElement("div");
+      row.className = "grid-row habit-row";
+
+      const nameCell = document.createElement("div");
+      nameCell.className = "habit-name-cell";
+
+      const cat = CATEGORIES[h.category];
+      if (cat) {
+        const dot = document.createElement("span");
+        dot.className = "cat-dot";
+        dot.style.background = cat.color;
+        dot.title = cat.label;
+        nameCell.appendChild(dot);
+      }
+
+      if (editingHabitId === h.id) {
+        const editInput = document.createElement("input");
+        editInput.className = "name-edit-input";
+        editInput.value = h.name;
+        editInput.onblur = () => renameHabit(h.id, editInput.value);
+        editInput.onkeydown = (e) => {
+          if (e.key === "Enter") editInput.blur();
+          if (e.key === "Escape") { editingHabitId = null; render(); }
+        };
+        nameCell.appendChild(editInput);
+        setTimeout(() => { editInput.focus(); editInput.select(); }, 0);
+      } else {
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "habit-name";
+        nameSpan.textContent = h.name;
+        nameCell.appendChild(nameSpan);
+
+        const actions = document.createElement("span");
+        actions.style.display = "flex";
+        actions.style.flexShrink = "0";
+
+        const editBtn = document.createElement("button");
+        editBtn.className = "icon-btn";
+        editBtn.setAttribute("aria-label", "Sửa tên");
+        editBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+        editBtn.onclick = () => { editingHabitId = h.id; render(); };
+        actions.appendChild(editBtn);
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "icon-btn";
+        delBtn.setAttribute("aria-label", "Xóa");
+        delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+        delBtn.onclick = () => removeHabit(h.id);
+        actions.appendChild(delBtn);
+
+        nameCell.appendChild(actions);
+      }
+      row.appendChild(nameCell);
+
+      thisWeekDates.forEach(d => {
+        const key = toKey(d);
+        const checked = isChecked(h.id, key);
+        const future = d > today;
+        const cell = document.createElement("button");
+        cell.className = "cell" + (checked ? " checked" : "") + (future ? " disabled" : "");
+        cell.disabled = future;
+        cell.innerHTML = checked ? checkSvg : "";
+        cell.onclick = () => toggleEntry(h.id, key);
+        row.appendChild(cell);
+      });
+
+      const streakCell = document.createElement("div");
+      streakCell.className = "streak-cell";
+      const s = streak(h.id);
+      const best = bestStreakEver(h.id);
+      if (s > 0) {
+        streakCell.innerHTML = `<span class="streak-stamp"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-1.5 4-5 6-5 10a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.5-3.5.3 2-1 3-1 3 .5-3-1.5-5-2.5-9.5z"/></svg> ${s}</span>${best > s ? `<span class="best-streak">kỷ lục ${best}</span>` : ""}`;
+      } else {
+        streakCell.innerHTML = `<span class="streak-none">—</span>${best > 0 ? `<span class="best-streak">kỷ lục ${best}</span>` : ""}`;
+      }
+      row.appendChild(streakCell);
+
+      rowsWrap.appendChild(row);
+    });
+
+    // nhắc nhở
+    const reminderList = document.getElementById("reminderList");
+    reminderList.innerHTML = "";
+    habits.forEach(h => {
+      const row = document.createElement("div");
+      row.className = "reminder-row";
+      const nameEl = document.createElement("span");
+      nameEl.className = "r-name";
+      nameEl.textContent = h.name;
+      const timeInput = document.createElement("input");
+      timeInput.type = "time";
+      timeInput.value = h.reminderTime || "";
+      timeInput.onchange = () => setReminder(h.id, timeInput.value);
+      const clearBtn = document.createElement("button");
+      clearBtn.className = "reminder-clear";
+      clearBtn.title = "Tắt nhắc nhở";
+      clearBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+      clearBtn.onclick = () => setReminder(h.id, null);
+      row.appendChild(nameEl);
+      row.appendChild(timeInput);
+      row.appendChild(clearBtn);
+      reminderList.appendChild(row);
+    });
+
+    // stats (theo danh mục đang lọc)
+    const habitsForStats = viewHabits;
+    const daysElapsed = thisWeekDates.filter(d => d <= today).length || 1;
+    const overallPct = (dates, capDays) => {
+      const possible = habitsForStats.length * capDays;
+      if (possible === 0) return 0;
+      const done = habitsForStats.reduce((acc,h) => acc + countInWeek(h.id, dates), 0);
+      return Math.round((done / possible) * 100);
+    };
+    const thisPct = overallPct(thisWeekDates, daysElapsed);
+    const lastPct = overallPct(lastWeekDates, 7);
+    const delta = thisPct - lastPct;
+
+    document.getElementById("thisWeekPct").textContent = thisPct + "%";
+    document.getElementById("lastWeekPct").textContent = lastPct + "%";
+    const deltaEl = document.getElementById("deltaValue");
+    const deltaCard = document.getElementById("deltaCard");
+    const arrow = delta > 0 ? "▲" : delta < 0 ? "▼" : "—";
+    const color = delta > 0 ? "var(--good)" : delta < 0 ? "var(--danger)" : "var(--text)";
+    deltaEl.innerHTML = `<span style="color:${color}">${arrow} ${delta > 0 ? "+" : ""}${delta}%</span>`;
+    deltaCard.style.borderColor = delta > 0 ? "#4C5A2E" : delta < 0 ? "#5A3A2E" : "var(--border)";
+
+    // chart
+    const labels = viewHabits.map(h => h.name.length > 14 ? h.name.slice(0,13) + "…" : h.name);
+    const thisData = viewHabits.map(h => countInWeek(h.id, thisWeekDates));
+    const lastData = viewHabits.map(h => countInWeek(h.id, lastWeekDates));
+
+    const chartWrap = document.getElementById("chartWrap");
+    chartWrap.style.height = Math.max(180, viewHabits.length * 46) + "px";
+
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("habitChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          { label: "Tuần trước", data: lastData, backgroundColor: "#4A4E3E", borderRadius: 2, maxBarThickness: 14 },
+          { label: "Tuần này", data: thisData, backgroundColor: "#C9A227", borderRadius: 2, maxBarThickness: 14 }
+        ]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: {
+          backgroundColor: "#242821",
+          borderColor: "#3A3F33",
+          borderWidth: 1,
+          titleColor: "#EDE8DD",
+          bodyColor: "#EDE8DD",
+          titleFont: { family: "IBM Plex Mono" },
+          bodyFont: { family: "IBM Plex Mono" },
+          callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw} ngày` }
+        }},
+        scales: {
+          x: { min: 0, max: 7, ticks: { color: "#A6A896", font: { family: "IBM Plex Mono", size: 11 } }, grid: { color: "#3A3F33" } },
+          y: { ticks: { color: "#EDE8DD", font: { family: "IBM Plex Mono", size: 12 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // điền danh sách danh mục vào ô chọn khi thêm thói quen
+  const catSelect = document.getElementById("newHabitCategory");
+  Object.entries(CATEGORIES).forEach(([key, c]) => {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = c.label;
+    catSelect.appendChild(opt);
+  });
+
+  document.getElementById("addBtn").onclick = addHabit;
+  document.getElementById("newHabitInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addHabit();
+  });
+  document.getElementById("notesArea").addEventListener("input", scheduleSaveNotes);
+
+  // nhắc nhở: xin quyền thông báo trình duyệt
+  const notifBtn = document.getElementById("notifPermBtn");
+  function refreshNotifBtn() {
+    if (!("Notification" in window)) { notifBtn.style.display = "none"; return; }
+    if (Notification.permission === "granted") {
+      notifBtn.textContent = "🔔 Đã bật thông báo";
+      notifBtn.disabled = true;
+    } else {
+      notifBtn.textContent = "🔔 Bật thông báo";
+      notifBtn.disabled = false;
+    }
+  }
+  notifBtn.onclick = async () => {
+    if (!("Notification" in window)) return;
+    await Notification.requestPermission();
+    refreshNotifBtn();
+  };
+  refreshNotifBtn();
+
+  // kiểm tra nhắc nhở mỗi 30 giây khi app đang mở
+  // (nhắc nhở chỉ hoạt động khi tab/app đang mở; thông báo đẩy thật cần máy chủ riêng)
+  function checkReminders() {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const now = new Date();
+    const nowKey = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+    habits.forEach(h => {
+      if (!h.reminderTime || h.reminderTime !== nowKey) return;
+      if (isChecked(h.id, todayKey)) return;
+      const fireKey = h.id + "_" + todayKey;
+      if (notifiedToday.has(fireKey)) return;
+      notifiedToday.add(fireKey);
+      new Notification("Nhắc nhở thói quen", { body: `Đừng quên: ${h.name}`, icon: "icon-192.png" });
+    });
+  }
+  setInterval(checkReminders, 30000);
+
+  // cài đặt như app (PWA) — chỉ hoạt động khi trang được lưu trữ thật (https),
+  // không hiện được khi mở trực tiếp bên trong Claude
+  let deferredInstallPrompt;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    document.getElementById("installBtn").style.display = "inline-flex";
+  });
+  document.getElementById("installBtn").onclick = async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    document.getElementById("installBtn").style.display = "none";
+  };
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js").catch(() => { /* bỏ qua nếu không hỗ trợ */ });
+    });
+  }
+
+  // ---- Điều khiển form đồng bộ GitHub ----
+  const syncForm = document.getElementById("syncForm");
+  const syncStatus = document.getElementById("syncStatus");
+  const syncToggleBtn = document.getElementById("syncToggleBtn");
+  function refreshSyncStatus() {
+    const cfg = ghConfigGet();
+    if (cfg) {
+      syncStatus.innerHTML = `<span style="color:var(--good)">● Đã kết nối</span> — ${cfg.owner}/${cfg.repo}`;
+      syncToggleBtn.textContent = "Sửa";
+      document.getElementById("syncOwner").value = cfg.owner;
+      document.getElementById("syncRepo").value = cfg.repo;
+    } else {
+      syncStatus.innerHTML = `<span style="color:var(--text-faint)">● Chưa kết nối</span> — dữ liệu chỉ lưu trên máy này`;
+      syncToggleBtn.textContent = "Cài đặt";
+    }
+  }
+  syncToggleBtn.onclick = () => {
+    syncForm.style.display = syncForm.style.display === "none" ? "block" : "none";
+  };
+  document.getElementById("syncSaveBtn").onclick = async () => {
+    const owner = document.getElementById("syncOwner").value.trim();
+    const repo = document.getElementById("syncRepo").value.trim();
+    const token = document.getElementById("syncToken").value.trim();
+    if (!owner || !repo || !token) { syncStatus.textContent = "Điền đủ 3 ô ở trên trước đã."; return; }
+    syncStatus.textContent = "Đang kiểm tra kết nối...";
+    ghConfigSet({ owner, repo, token, branch: "main" });
+    const testRead = await ghGet(STORE_KEY);
+    // ghGet trả null cả khi lỗi lẫn khi file chưa tồn tại (404) — thử ghi thử để phân biệt
+    const testWrite = await storageSet(STORE_KEY, JSON.stringify({ habits, entries }));
+    if (!testWrite) {
+      syncStatus.innerHTML = `<span style="color:var(--danger)">Kết nối thất bại</span> — kiểm tra lại tên tài khoản, repo và token.`;
+      ghConfigClear();
+      return;
+    }
+    await storageSet(NOTES_KEY, document.getElementById("notesArea").value);
+    document.getElementById("syncToken").value = "";
+    syncForm.style.display = "none";
+    refreshSyncStatus();
+    await load();
+    render();
+  };
+  document.getElementById("syncClearBtn").onclick = () => {
+    ghConfigClear();
+    document.getElementById("syncToken").value = "";
+    refreshSyncStatus();
+    render();
+  };
+  refreshSyncStatus();
+
+  // tự lấy dữ liệu mới nhất mỗi 25 giây khi đã kết nối GitHub, để 2 thiết bị thấy thay đổi của nhau
+  async function pollSync() {
+    if (!ghConfigGet()) return;
+    const raw = await storageGet(STORE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        habits = parsed.habits || [];
+        entries = parsed.entries || {};
+      } catch (e) {}
+    }
+    const notesRaw = await storageGet(NOTES_KEY);
+    const notesEl = document.getElementById("notesArea");
+    if (notesRaw != null && document.activeElement !== notesEl) {
+      notesEl.value = notesRaw;
+    }
+    render();
+  }
+  setInterval(pollSync, 25000);
+
+  (async () => {
+    await load();
+    render();
+  })();
+</script>
+</body>
+</html>
